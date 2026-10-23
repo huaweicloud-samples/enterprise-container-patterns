@@ -1,0 +1,28 @@
+# 定时任务 —— CCE 工作负载清单（等价 ECS 计划任务 / Copilot cron-job）
+# 部署：kubectl apply -f cronjob.yaml
+# 说明：CCE 控制面按 cron 表达式调度一次性 Pod，运行结束即退出，不长期占用节点。
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: periodic-task
+  namespace: default
+spec:
+  schedule: "*/15 * * * *"   # 每 15 分钟执行一次（按业务需要调整）
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: task
+              image: swr.cn-north-4.myhuaweicloud.com/container-patterns/cron-job:latest
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi

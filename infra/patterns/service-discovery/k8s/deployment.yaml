@@ -1,0 +1,68 @@
+# 服务发现 —— CCE 工作负载清单
+# 等价原模式：ECS 服务注册 Cloud Map，按服务名互相寻址
+# 部署：kubectl apply -f deployment.yaml
+# 说明：CCE 内置 CoreDNS 自动为 Service 生成 DNS 记录；
+#      前端通过 http://backend.default.svc.cluster.local:3000 访问后端。
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: default
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: swr.cn-north-4.myhuaweicloud.com/container-patterns/service-discovery-backend:latest
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: default
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: swr.cn-north-4.myhuaweicloud.com/container-patterns/service-discovery-frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            # 通过集群内 DNS 名称寻址后端，等价于 Cloud Map 服务名寻址
+            - name: NODEJS_URL
+              value: "http://backend.default.svc.cluster.local:3000"
