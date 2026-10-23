@@ -1,0 +1,10 @@
+{
+  "name": "container-patterns-sample-frontend",
+  "version": "1.0.0",
+  "description": "容器模式目录示例前端",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "license": "Apache-2.0"
+}

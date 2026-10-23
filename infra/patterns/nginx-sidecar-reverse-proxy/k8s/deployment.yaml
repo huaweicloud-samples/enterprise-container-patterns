@@ -1,0 +1,50 @@
+# Nginx 反向代理 Sidecar —— CCE 工作负载清单
+# 等价原模式：ECS Fargate 任务定义中 nginx + app 双容器（共享 awsvpc 网络）
+# 部署：kubectl apply -f deployment.yaml
+# 说明：同一 Pod 内的两个容器共享网络命名空间，nginx 通过 127.0.0.1:8080 直连 app。
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-with-nginx-sidecar
+  namespace: default
+  labels:
+    app: web-with-nginx-sidecar
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-with-nginx-sidecar
+  template:
+    metadata:
+      labels:
+        app: web-with-nginx-sidecar
+    spec:
+      containers:
+        # Sidecar：反向代理，对外暴露 80，向内转发到 app 的 8080
+        - name: nginx
+          image: swr.cn-north-4.myhuaweicloud.com/container-patterns/nginx-sidecar:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+        # 应用容器：监听 8080，对外不暴露，仅由同 Pod 的 nginx 访问
+        - name: app
+          image: swr.cn-north-4.myhuaweicloud.com/container-patterns/sample-app:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
